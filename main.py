@@ -1,12 +1,14 @@
-from kivy.app import App
+from kivymd.app import MDApp
 from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager
 
 from screens.home_screen import HomeScreen
 from screens.prompt_screen import PromptScreen
 
-class TravelPlannerApp(App):
+class TravelPlannerApp(MDApp):
     def build(self):
+        self.theme_cls.theme_style = "Light"
+        self.theme_cls.primary_palette = "Orange"
         Builder.load_file("travel.kv")
         sm = ScreenManager()
         sm.add_widget(HomeScreen(name="home"))

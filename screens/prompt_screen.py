@@ -1,8 +1,8 @@
 import re
 from kivy.uix.screenmanager import Screen
-from kivy.uix.label import Label
+from kivymd.uix.label import MDLabel
 from kivy.clock import Clock
-from google_directions import get_directions
+from google_directions import get_directions, get_directions_via_waypoints
 
 # Replace with your actual key
 GOOGLE_MAPS_API_KEY = "AIzaSyDBDQNtIZWm858YOpZYHmc4JxRYvWoz6GA"
@@ -25,10 +25,12 @@ class PromptScreen(Screen):
         def fetch(dt):
             try:
                 # TODO: hook up origin/destination dynamically
-                steps = get_directions(
-                    GOOGLE_MAPS_API_KEY,
-                    origin="Salt Lake City, UT",
-                    destination="Moab, UT"
+                steps = get_directions_via_waypoints(
+                    api_key=f"{GOOGLE_MAPS_API_KEY}",
+                    origin="New York, NY",
+                    waypoints=["Philadelphia, PA", "Baltimore, MD"],
+                    destination="Washington, DC",
+                    optimize=True  # or False
                 )
 
                 self.ids.output_box.clear_widgets()
@@ -36,7 +38,7 @@ class PromptScreen(Screen):
                     # strip all HTML tags
                     cleaned = re.sub(r"<.*?>", "", instruction)
                     step_text = f"{idx}. {cleaned} @ {address}"
-                    lbl = Label(
+                    lbl = MDLabel(
                         text=step_text,
                         font_size=14,
                         size_hint_y=None,
@@ -52,7 +54,7 @@ class PromptScreen(Screen):
 
     def _display_message(self, msg):
         self.ids.output_box.clear_widgets()
-        lbl = Label(
+        lbl = MDLabel(
             text=msg,
             font_size=14,
             size_hint_y=None,
