@@ -1,0 +1,75 @@
+ScreenManager:
+    HomeScreen:
+    PromptScreen:
+
+<HomeScreen>:
+    name: "home"
+    # bind the ObjectProperty to the widget with id "destinations_container"
+    destinations_container: destinations_container
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 10
+        spacing: 10
+
+        Label:
+            text: "My Travel Destinations"
+            font_size: 24
+            size_hint_y: None
+            height: 50
+
+        ScrollView:
+            size_hint_y: 1
+
+            GridLayout:
+                id: destinations_container
+                cols: 1
+                spacing: 10
+                size_hint_y: None
+                height: self.minimum_height
+
+<PromptScreen>:
+    name: "prompt"
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: 10
+        spacing: 10
+
+        Label:
+            id: destination_label
+            text: ""
+            font_size: 18
+
+        TextInput:
+            id: prompt_input
+            hint_text: "Enter your prompt"
+            size_hint_y: 0.4
+
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: 40
+            spacing: 10
+
+            Button:
+                text: "Back"
+                size_hint_x: 0.5
+                on_release:
+                    app.root.current = "home"
+
+            Button:
+                text: "Submit"
+                size_hint_x: 0.5
+                on_release:
+                    app.root.get_screen("prompt").submit_prompt()
+
+        ScrollView:
+            size_hint_y: 1
+
+            GridLayout:
+                id: output_box
+                cols: 1
+                spacing: 10
+                size_hint_y: None
+                height: self.minimum_height
