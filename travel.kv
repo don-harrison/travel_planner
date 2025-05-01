@@ -4,16 +4,6 @@
 #:import MDButtonText kivymd.uix.button.MDButtonText
 #:import MDExtendedFabButton kivymd.uix.button.MDExtendedFabButton
 
-<DestinationCard@MDButton>:
-    size_hint_y: None
-    height: "80dp"
-    md_bg_color: app.theme_cls.primary_color
-    radius: [12]
-    on_release: root.on_release
-    MDButtonText:
-        text: root.text
-        halign: "center"
-        color: 1, 1, 1, 1
 
 <HomeScreen>:
     name: "home"
@@ -39,12 +29,20 @@
                 id: destinations_container
                 cols: 1
                 spacing: "12dp"
+                padding: "12dp"  # Uniform padding of 10dp on all sides
                 size_hint_y: None
                 height: self.minimum_height
 
 <PromptScreen>:
     name: "prompt"
     MDBoxLayout:
+        canvas.before:
+            Color:
+                rgba: 1, 1, 1, 1  # white
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                
         orientation: "vertical"
         padding: "10dp"
         spacing: "10dp"
@@ -67,8 +65,25 @@
 
         MDTextField:
             id: prompt_input
-            hint_text: "What do you want to do?"
+            hint_text: "Location"
 
+        MDTextField:
+            id: date_field
+            mode: "outlined"
+            pos_hint: {'center_x': .5, 'center_y': .85}
+            size_hint_x: .5
+            on_focus: root.show_date_picker(self)
+
+            MDTextFieldHintText:
+                text: "Docked date picker"
+
+            MDTextFieldHelperText:
+                text: "MM/DD/YYYY"
+                mode: "persistent"
+
+            MDTextFieldTrailingIcon:
+                icon: "calendar"
+                
         MDLabel:
             id: destination_label
             text: ""

@@ -3,16 +3,32 @@ from kivy.uix.screenmanager import Screen
 from kivymd.uix.label import MDLabel
 from kivy.clock import Clock
 from google_directions import get_directions, get_directions_via_waypoints
+from utils.storage import load_data, save_data
+import models.plan_model as plan_model
+from kivymd.uix.pickers import MDDockedDatePicker
+from kivy.metrics import dp
 
 # Replace with your actual key
 GOOGLE_MAPS_API_KEY = "AIzaSyDBDQNtIZWm858YOpZYHmc4JxRYvWoz6GA"
-
 class PromptScreen(Screen):
+
+    def on_enter(self, *args):
+        return super().on_enter(*args)
+        
     def set_destination(self, destination):
         self.destination = destination
         self.ids.destination_label.text = f"What do you want to do in {destination}?"
         self.ids.prompt_input.text = ""
         self.ids.output_box.clear_widgets()
+        data = load_data()
+        self.ids.output_box.add_widget(
+            MDLabel(
+                text = data["plans"][destination]["prompt"] if destination in data["plans"] else "",
+                font_size=14,
+                size_hint_y=None,
+                height=40
+            )
+        )
 
     def submit_prompt(self):
         prompt_text = self.ids.prompt_input.text.strip()
@@ -21,9 +37,16 @@ class PromptScreen(Screen):
             return
 
         self._display_message("Fetching directions...")
-
+        
         def fetch(dt):
+            data = load_data()
             try:
+                data["plans"][self.destination] = {
+                    "destination": self.destination,
+                    "prompt": prompt_text,
+                    "steps": []
+                }
+
                 # TODO: hook up origin/destination dynamically
                 steps = get_directions_via_waypoints(
                     api_key=f"{GOOGLE_MAPS_API_KEY}",
@@ -34,6 +57,7 @@ class PromptScreen(Screen):
                 )
 
                 self.ids.output_box.clear_widgets()
+                data = load_data()
                 for idx, (instruction, address) in enumerate(steps, 1):
                     # strip all HTML tags
                     cleaned = re.sub(r"<.*?>", "", instruction)
@@ -45,14 +69,24 @@ class PromptScreen(Screen):
                         height=40
                     )
                     self.ids.output_box.add_widget(lbl)
+                    #append step to the plan
+                    data["plans"][data["destinations"].index(self.destination)]["steps"].append({
+                        "instruction": cleaned,
+                        "address": address
+                    })
+
+                self._display_message("Directions fetched successfully.")
+                # save updated data
+                save_data(data)
 
             except Exception as e:
                 self._display_message(f"Error: {e}")
 
         # schedule on next frame
         Clock.schedule_once(fetch, 0)
-
+        
     def _display_message(self, msg):
+
         self.ids.output_box.clear_widgets()
         lbl = MDLabel(
             text=msg,
@@ -61,3 +95,24 @@ class PromptScreen(Screen):
             height=40
         )
         self.ids.output_box.add_widget(lbl)
+
+        
+    def show_date_picker(self, field):
+        if not field.focus:
+            return
+
+        date_dialog = MDDockedDatePicker()
+
+        # Define what happens when a date is selected
+        def on_date_selected(date_obj):
+            field.text = date_obj.strftime("%m/%d/%Y")
+
+        date_dialog.bind(on_ok=lambda instance, date_obj: on_date_selected(date_obj))
+
+        # Position relative to the field
+        date_dialog.pos = [
+            field.center_x - date_dialog.width / 2,
+            field.y - (date_dialog.height + dp(32)),
+        ]
+
+        date_dialog.open()
