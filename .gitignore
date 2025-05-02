@@ -1,0 +1,24 @@
+__pycache__
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+VENV/
+__pycache__/
+*.egg-info/
+*.egg
+dist/
+build/
+*.log
+*.sqlite3
+*.db
+*.db-journal
+*.DS_Store
+.idea/
+.vscode/
+myenv
+# Python virtual environments
+# Jupyter Notebook checkpoints
