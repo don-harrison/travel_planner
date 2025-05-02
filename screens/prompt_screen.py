@@ -7,6 +7,7 @@ from utils.storage import load_data, save_data
 import models.plan_model as plan_model
 from kivymd.uix.pickers import MDDockedDatePicker
 from kivy.metrics import dp
+from datetime import datetime
 
 # Replace with your actual key
 GOOGLE_MAPS_API_KEY = "AIzaSyDBDQNtIZWm858YOpZYHmc4JxRYvWoz6GA"
@@ -101,18 +102,33 @@ class PromptScreen(Screen):
         if not field.focus:
             return
 
-        date_dialog = MDDockedDatePicker()
+        picker = MDDockedDatePicker(mode='range')
+        was_confirmed = {"value": False}
 
-        # Define what happens when a date is selected
-        def on_date_selected(date_obj):
-            field.text = date_obj.strftime("%m/%d/%Y")
+        def on_ok(instance):
+            was_confirmed["value"] = True
 
-        date_dialog.bind(on_ok=lambda instance, date_obj: on_date_selected(date_obj))
+            try:
+                # Attempt to grab the selected string from the visible text input
+                selected_text = instance.children[0].text  # this points to the inner MDTextField
+                
+                selected_date = datetime.strptime(selected_text, "%m/%d/%Y").date()
+                field.text = selected_date.strftime("%m/%d/%Y")
+            except Exception as e:
+                print(f"Failed to parse selected date: {e}")
+                print(instance.children)
 
-        # Position relative to the field
-        date_dialog.pos = [
-            field.center_x - date_dialog.width / 2,
-            field.y - (date_dialog.height + dp(32)),
+        def on_dismiss(instance):
+            if not was_confirmed["value"]:
+                print("User dismissed without selecting a date.")
+
+        picker.bind(on_ok=on_ok)
+        picker.bind(on_dismiss=on_dismiss)
+
+        picker.pos = [
+            field.center_x - picker.width / 2,
+            field.y - (picker.height + dp(32)),
         ]
 
-        date_dialog.open()
+        picker.open()
+
