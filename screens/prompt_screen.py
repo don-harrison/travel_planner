@@ -10,7 +10,7 @@ from kivy.metrics import dp
 from datetime import datetime
 
 # Replace with your actual key
-GOOGLE_MAPS_API_KEY = "AIzaSyDBDQNtIZWm858YOpZYHmc4JxRYvWoz6GA"
+GOOGLE_MAPS_API_KEY = "add key here"
 class PromptScreen(Screen):
 
     def on_enter(self, *args):
