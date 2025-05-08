@@ -20,4 +20,4 @@ class TravelPlannerApp(MDApp):
 
 
 if __name__ == "__main__":
-    TravelPlannerApp().run() 
+    TravelPlannerApp().run()
