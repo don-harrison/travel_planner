@@ -8,7 +8,6 @@ import ctypes
 
 class TravelPlannerApp(MDApp):
     def build(self):
-        ctypes.windll.user32.SetProcessDPIAware()  # for Windows
         Config.set("graphics", "multisamples", "0")
         self.theme_cls.theme_style = "Light"
         self.theme_cls.primary_palette = "Orange"
