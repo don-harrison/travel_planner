@@ -57,12 +57,9 @@ class PromptScreen(Screen):
                     prompt_text,
                     limit=10
                 )
-                #output itinerary to file
-                with open("itinerary.txt", "w") as f:
-                    f.write(itinerary["output"])
 
                 #take in itinerary and get steps
-                steps = itinerary["output"].split("\n")
+                steps = itinerary.split("\n")
 
                 data["plans"][self.destination] = {
                     "destination": self.destination,
