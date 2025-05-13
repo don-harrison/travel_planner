@@ -69,6 +69,9 @@ class HomeScreen(MDScreen):
                 data = load_data()
                 if name not in data["destinations"]:
                     data["destinations"].append(name)
+                    data["plans"][name] = {"destination": name,
+                    "prompt": None,
+                    "steps": None}
                     save_data(data)
                 dialog.dismiss()
                 self.refresh_list()
