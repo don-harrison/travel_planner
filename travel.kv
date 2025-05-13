@@ -63,7 +63,10 @@
                 on_release: root.submit_prompt()
                 MDButtonText:
                     text: "Submit"
-
+            MDButton:
+                on_release: root.clear_itinerary()
+                MDButtonText:
+                    text: "Clear Itinerary"
         MDTextField:
             id: prompt_input
             hint_text: "Location"
