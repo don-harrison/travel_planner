@@ -104,11 +104,6 @@ def NPS_API_Request_by_Park(request_type, park_code):
         print("Error: {response.status_code}")
         return None
 
-# print("Parks Nearby: ", get_parks_near_city("St George, UT", max_distance_km=200), "\n")
-# print("Tours at Park: ", NPS_API_Request_by_Park("tours", "arch"))
-# national_park_search_near_city("Moab, UT", max_distance_km=100, interests=["hiking", "rock climbing"])
-
-from langchain.tools import StructuredTool
 
 def search_parks_and_interests(city_name, interests, max_distance_km=100):
     """

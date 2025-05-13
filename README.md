@@ -42,3 +42,9 @@ open main.py and run the python script
     - Second Agent: Get approximate times for each place
     - Third Agent: Use approximate to generate valid itinerary.
 5. Add ability to reprompt.
+
+## Resources
+* https://github.com/faouzij/TrackMe/blob/master/airports.txt
+### APIs
+* https://www.nps.gov/subjects/developer/api-documentation.htm#/
+* https://test.api.amadeus.com/v
