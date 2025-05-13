@@ -4,6 +4,7 @@ from kivymd.uix.pickers import MDDockedDatePicker
 from kivy.clock import Clock
 from kivy.uix.screenmanager import Screen
 from kivy.metrics import dp
+from threading import Thread
 
 from utils.storage import load_data, save_data
 from datetime import datetime
@@ -40,7 +41,7 @@ class PromptScreen(Screen):
                         height=40
                     )
                 )
-    def clear_itinerary(self):
+    def clear_itinerary(self, state):
         self.ids.output_box.clear_widgets()
         data = load_data()
         data["plans"][self.destination]["steps"] = ""
@@ -52,47 +53,54 @@ class PromptScreen(Screen):
             self._display_message("Prompt is empty.")
             return
 
-        self._display_message("Fetching Itinerary...")
-        
-        #Hook for llm responses!
-        def fetch(dt):
+        self._display_message("Fetching Itinerary…")
+
+        # Start the heavy work in a daemon thread:
+        Thread(
+            target=self._fetch_itinerary,
+            args=(prompt_text,),
+            daemon=True
+        ).start()
+
+    def _fetch_itinerary(self, prompt_text):
+        try:
             data = load_data()
-            try:
-                state = ig.State(
-                    destination=self.destination,
-                    prompt=prompt_text,
-                    interests=self.ids.prompt_input.text.strip(),
-                    limit=10,
-                    itinerary="",
-                    improved_itinerary="",
-                    final_itinerary=""
-                )
+            state = ig.State(
+                destination=self.destination,
+                prompt=prompt_text,
+                interests=prompt_text,
+                limit=10,
+                itinerary="",
+                improved_itinerary="",
+                final_itinerary=""
+            )
 
-                # Get the itinerary
-                itinerary = ig.generate_improved_itinerary(state)
+            itinerary = ig.generate_improved_itinerary(state)
 
-                #take in itinerary and get steps
-                steps = itinerary.split("\n")
+            steps = itinerary.split("\n")
 
-                data["plans"][self.destination] = {
-                    "destination": self.destination,
-                    "prompt": prompt_text,
-                    "steps": steps
-                }
+            data["plans"][self.destination] = {
+                "destination": self.destination,
+                "prompt": prompt_text,
+                "steps": steps
+            }
+            save_data(data)
 
-                self.ids.output_box.clear_widgets()
+            # Schedule the UI update back on the main thread
+            Clock.schedule_once(lambda dt: self._on_itinerary_ready(), 0)
 
-                for step in data["plans"][self.destination]["steps"]:
-                    self._add_step(step.replace("\n", ""))
+        except Exception as e:
+            Clock.schedule_once(lambda dt: self._display_message(f"Error: {e}"), 0)
 
-                # save updated data
-                save_data(data)
+    def _on_itinerary_ready(self):
+        self.update_steps()
 
-            except Exception as e:
-                self._display_message(f"Error: {e}")
+    def update_steps(self):
+        data = load_data()
+        self.ids.output_box.clear_widgets()
 
-        # schedule on next frame
-        Clock.schedule_once(fetch, 0)
+        for step in data["plans"][self.destination]["steps"]:
+            self._add_step(step)
 
     def _add_step(self, step):
         lbl = MDLabel(
