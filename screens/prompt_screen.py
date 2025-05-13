@@ -52,7 +52,7 @@ class PromptScreen(Screen):
             self._display_message("Prompt is empty.")
             return
 
-        self._display_message("Fetching directions...")
+        self._display_message("Fetching Itinerary...")
         
         #Hook for llm responses!
         def fetch(dt):
@@ -77,7 +77,7 @@ class PromptScreen(Screen):
                 self.ids.output_box.clear_widgets()
 
                 for step in data["plans"][self.destination]["steps"]:
-                    self._add_step(step)
+                    self._add_step(step.replace("\n", ""))
 
                 # save updated data
                 save_data(data)
