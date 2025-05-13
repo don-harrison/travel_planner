@@ -58,12 +58,18 @@ class PromptScreen(Screen):
         def fetch(dt):
             data = load_data()
             try:
-                # Get the itinerary
-                itinerary = ig.build_itinerary(
-                    self.destination,
-                    prompt_text,
-                    limit=10
+                state = ig.State(
+                    destination=self.destination,
+                    prompt=prompt_text,
+                    interests=self.ids.prompt_input.text.strip(),
+                    limit=10,
+                    itinerary="",
+                    improved_itinerary="",
+                    final_itinerary=""
                 )
+
+                # Get the itinerary
+                itinerary = ig.generate_improved_itinerary(state)
 
                 #take in itinerary and get steps
                 steps = itinerary.split("\n")
