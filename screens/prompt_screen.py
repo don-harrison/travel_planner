@@ -30,14 +30,21 @@ class PromptScreen(Screen):
         data = load_data()
 
         #If the destination already has a plan, load it into the label for directions
-        self.ids.output_box.add_widget(
-            MDLabel(
-                text = data["plans"][destination]["prompt"] if destination in data["plans"] else "",
-                font_size=14,
-                size_hint_y=None,
-                height=40
-            )
-        )
+        if data["plans"][destination]["steps"]:
+            for step in data["plans"][destination]["steps"]:
+                self.ids.output_box.add_widget(
+                    MDLabel(
+                        text = step,
+                        font_size=14,
+                        size_hint_y=None,
+                        height=40
+                    )
+                )
+    def clear_itinerary(self):
+        self.ids.output_box.clear_widgets()
+        data = load_data()
+        data["plans"][self.destination]["steps"] = ""
+        save_data(data)
 
     def submit_prompt(self):
         prompt_text = self.ids.prompt_input.text.strip()
