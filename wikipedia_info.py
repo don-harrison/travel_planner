@@ -8,7 +8,7 @@ def get_wikipedia_based_answer(
     wiki_topic,
     question,
     google_api_key,
-    model="gemini-pro",
+    model="gemini-2.0-flash",
     max_docs=10,
     temperature=0.0
 ):

@@ -22,6 +22,9 @@ import nps_api_search as nps
 class State(TypedDict):
     destination: str
     prompt: str
+    origin: str
+    date_start: str
+    date_end: str
     interests: str
     limit: int
     itinerary: str
@@ -88,6 +91,7 @@ def generate_improved_itinerary(state: State) -> str:
     """
     Orchestrates a 3-step LLM workflow to generate, improve, and polish an itinerary.
     """
+    print(state)
     if not GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY not set")
 

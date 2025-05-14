@@ -55,9 +55,13 @@ class PromptScreen(Screen):
     def submit_prompt(self):
         prompt_text = self.ids.prompt_input.text.strip()
         origin = self.ids.origin_input.text.strip()
+        
+        #WARNING: Might cause issues if the self is shared between instances on different destination pages
+        self.origin = origin
+
         data = load_data()
         data["plans"][self.destination]["origin"] = origin
-        
+
         if not prompt_text:
             self._display_message("Prompt is empty.")
             return
@@ -67,16 +71,20 @@ class PromptScreen(Screen):
         # Start the heavy work in a daemon thread:
         Thread(
             target=self._fetch_itinerary,
-            args=(prompt_text),
+            args=(prompt_text,),
             daemon=True
         ).start()
 
     def _fetch_itinerary(self, prompt_text):
         try:
             data = load_data()
+
             state = ig.State(
                 destination=self.destination,
                 prompt=prompt_text,
+                origin = self.origin,
+                date_start = str(self.date_start),
+                date_end = str(self.date_end),
                 interests=prompt_text,
                 limit=10,
                 itinerary="",
@@ -136,7 +144,9 @@ class PromptScreen(Screen):
             data = load_data()
             data["plans"][self.destination]["date_start"] = instance_date_picker.min_date
             data["plans"][self.destination]["date_end"] = instance_date_picker.max_date
-
+            self.date_start = instance_date_picker.min_date
+            self.date_end = instance_date_picker.max_date
+            
             MDSnackbar(
                 MDSnackbarText(
                     text="Selected dates is:"

@@ -4,3 +4,4 @@ langchain_community
 praw
 langchain_google_genai
 langgraph
+geopy

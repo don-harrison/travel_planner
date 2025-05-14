@@ -17,6 +17,5 @@ class TravelPlannerApp(MDApp):
         sm.add_widget(PromptScreen(name="prompt"))
         return sm
 
-
 if __name__ == "__main__":
     TravelPlannerApp().run()
