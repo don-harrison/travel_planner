@@ -16,6 +16,7 @@ from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START, END
 
 import reddit_data as rd
+import nps_api_search as nps
 
 # Define the shape of the workflow state
 class State(TypedDict):
@@ -33,9 +34,20 @@ def get_documents(destination: str, interests: str, limit: int = 10) -> list[Doc
     Fetch documents for the given destination and interests.
     Currently loads Reddit posts via reddit_data.
     """
+
+    docs = []
+
     reddit_strings = rd.get_llm_string(destination, interests, limit=limit)
     reddit_docs = [Document(page_content=text) for text in reddit_strings]
-    return reddit_docs
+
+    nps_strings = nps.search_parks_and_interests(destination, interests)
+    
+    nps_docs = [Document(page_content=text) for text in nps_strings]
+
+    docs.extend(reddit_docs)
+    docs.extend(nps_docs)
+
+    return docs
 
 
 def build_initial_itinerary(
