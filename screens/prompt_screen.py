@@ -5,11 +5,15 @@ from kivy.clock import Clock
 from kivy.uix.screenmanager import Screen
 from kivy.metrics import dp
 from threading import Thread
-
+from kivymd.uix.snackbar import (
+    MDSnackbar, MDSnackbarSupportingText, MDSnackbarText
+)
 from utils.storage import load_data, save_data
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+from kivymd.uix.pickers import MDModalDatePicker
+from datetime import date, timedelta  # This gives you the 'date' type
 
 #Local imports
 from google_directions import get_directions_via_waypoints
@@ -41,7 +45,8 @@ class PromptScreen(Screen):
                         height=40
                     )
                 )
-    def clear_itinerary(self, state):
+ 
+    def clear_itinerary(self):
         self.ids.output_box.clear_widgets()
         data = load_data()
         data["plans"][self.destination]["steps"] = ""
@@ -49,6 +54,10 @@ class PromptScreen(Screen):
 
     def submit_prompt(self):
         prompt_text = self.ids.prompt_input.text.strip()
+        origin = self.ids.origin_input.text.strip()
+        data = load_data()
+        data["plans"][self.destination]["origin"] = origin
+        
         if not prompt_text:
             self._display_message("Prompt is empty.")
             return
@@ -58,7 +67,7 @@ class PromptScreen(Screen):
         # Start the heavy work in a daemon thread:
         Thread(
             target=self._fetch_itinerary,
-            args=(prompt_text,),
+            args=(prompt_text),
             daemon=True
         ).start()
 
@@ -121,39 +130,79 @@ class PromptScreen(Screen):
             height=40
         )
         self.ids.output_box.add_widget(lbl)
+
+    def on_ok(self, instance_date_picker):
+            self.ids.date_field.text = str(instance_date_picker.min_date) + "-" + str(instance_date_picker.max_date)
+            data = load_data()
+            data["plans"][self.destination]["date_start"] = instance_date_picker.min_date
+            data["plans"][self.destination]["date_end"] = instance_date_picker.max_date
+
+            MDSnackbar(
+                MDSnackbarText(
+                    text="Selected dates is:"
+                ),
+                MDSnackbarSupportingText(
+                    text="\n".join(str(date) for date in instance_date_picker.get_date()),
+                    padding=[0, 0, 0, dp(12)],
+                ),
+                y=dp(124),
+                pos_hint={"center_x": 0.5},
+                size_hint_x=0.5,
+                padding=[0, 0, "8dp", "8dp"],
+            ).open()
+            
+    def on_date_focus(self, instance, focused):
+        if focused:  # Only when the user clicks into the field
+            self.show_modal_date_picker()
+
+    def show_modal_date_picker(self, *args):
+        today = date.today()
+        future_date = today + timedelta(days=4)
+
+        date_dialog = MDModalDatePicker(
+            mode="range",
+            min_date=today,
+            max_date=future_date
+        )
         
-    def show_date_picker(self, field):
-        if not field.focus:
-            return
+        date_dialog.bind(on_ok=self.on_ok)
+        date_dialog.open()
 
-        picker = MDDockedDatePicker(mode='range')
-        was_confirmed = {"value": False}
 
-        def on_ok(instance):
-            was_confirmed["value"] = True
+    # def show_date_picker(self, field):
+    #     if not field.focus:
+    #         return
 
-            try:
-                print("selected date:", instance.selected_date)
-                # Attempt to grab the selected string from the visible text input
-                # selected_text = instance.children[0].text  # this points to the inner MDTextField
+    #     picker = MDDockedDatePicker(mode='range')
+    #     was_confirmed = {"value": False}
+
+    #     def on_ok(instance):
+    #         was_confirmed["value"] = True
+
+    #         try:
+    #             print("selected date:", instance.get_date())
+    #             # Attempt to grab the selected string from the visible text input
+    #             # selected_text = instance.children[0].text  # this points to the inner MDTextField
                 
-                # selected_date = datetime.strptime(selected_text, "%m/%d/%Y").date()
-                # field.text = selected_date.strftime("%m/%d/%Y")
-            except Exception as e:
-                print(f"Failed to parse selected date: {e}")
-                print(instance.children)
+    #             # selected_date = datetime.strptime(selected_text, "%m/%d/%Y").date()
+    #             # field.text = selected_date.strftime("%m/%d/%Y")
+    #         except Exception as e:
+    #             print(f"Failed to parse selected date: {e}")
+    #             print(instance.children)
 
-        def on_dismiss(instance):
-            if not was_confirmed["value"]:
-                print("User dismissed without selecting a date.")
+    #     def on_dismiss(instance):
+    #         print("selected date:", instance.get_date())
 
-        picker.bind(on_ok=on_ok)
-        picker.bind(on_dismiss=on_dismiss)
+    #         if not was_confirmed["value"]:
+    #             print("User dismissed without selecting a date.")
 
-        picker.pos = [
-            field.center_x - picker.width / 2,
-            field.y - (picker.height + dp(32)),
-        ]
+    #     picker.bind(on_ok=on_ok)
+    #     picker.bind(on_dismiss=on_dismiss)
 
-        picker.open()
+    #     picker.pos = [
+    #         field.center_x - picker.width / 2,
+    #         field.y - (picker.height + dp(32)),
+    #     ]
+
+    #     picker.open()
 

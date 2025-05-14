@@ -71,7 +71,9 @@ class HomeScreen(MDScreen):
                     data["destinations"].append(name)
                     data["plans"][name] = {"destination": name,
                     "prompt": None,
-                    "steps": None}
+                    "steps": None,
+                    "date_start": None,
+                    "date_end": None}
                     save_data(data)
                 dialog.dismiss()
                 self.refresh_list()

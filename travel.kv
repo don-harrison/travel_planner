@@ -58,7 +58,6 @@
                 on_release: app.root.current = "home"
                 MDButtonText:
                     text: "Back"
-
             MDButton:
                 on_release: root.submit_prompt()
                 MDButtonText:
@@ -72,14 +71,19 @@
             hint_text: "Location"
             MDTextFieldHintText:
                 text: "What are some of your interests?"
-
+        MDTextField:
+            id: origin_input
+            hint_text: "Origin"
+            MDTextFieldHintText:
+                text: "What is your point of origin?"
+        
         MDTextField:
             id: date_field
             mode: "outlined"
             pos_hint: {'center_x': .5, 'center_y': .85}
             size_hint_x: .5
-            on_focus: root.show_date_picker(self)
-
+            on_focus: root.on_date_focus(self, args[1])
+            
             MDTextFieldHintText:
                 text: "Choose Date Range"
 
@@ -89,7 +93,7 @@
 
             MDTextFieldTrailingIcon:
                 icon: "calendar"
-                
+
         MDLabel:
             id: destination_label
             text: ""
