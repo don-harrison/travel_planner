@@ -17,6 +17,7 @@ from langgraph.graph import StateGraph, START, END
 
 import reddit_data as rd
 import nps_api_search as nps
+import flight_info as fi
 
 # Define the shape of the workflow state
 class State(TypedDict):
@@ -28,6 +29,7 @@ class State(TypedDict):
     interests: str
     limit: int
     itinerary: str
+    itinerary_with_flight: str
     improved_itinerary: str
     final_itinerary: str
 
@@ -52,6 +54,11 @@ def get_documents(destination: str, interests: str, limit: int = 10) -> list[Doc
 
     return docs
 
+def get_flight_info(origin: str, destination: str, departure_date: str, return_date: str) -> str:
+    """
+    Get flight information for the itinerary.
+    """
+    return fi.find_flights(origin, destination, departure_date, return_date)
 
 def build_initial_itinerary(
     state,
@@ -88,6 +95,7 @@ def build_initial_itinerary(
 
     return result
 
+
 def generate_improved_itinerary(state: State) -> str:
     """
     Orchestrates a 3-step LLM workflow to generate, improve, and polish an itinerary.
@@ -103,6 +111,8 @@ def generate_improved_itinerary(state: State) -> str:
         temperature=0.0,
     )
 
+    flight_info = get_flight_info(origin = state["origin"], destination = state["destination"], departure_date = state["date_start"], return_date = state["date_end"])
+
     # Node 1: generate initial itinerary
     def generate_itinerary_node(state: State) -> dict:
         itinerary = build_initial_itinerary(
@@ -110,6 +120,19 @@ def generate_improved_itinerary(state: State) -> str:
         )
         
         return {"itinerary": itinerary}
+    
+    def generate_flight_with_itinerary(state: State) -> dict:
+        """
+        Generate flight information.
+        """
+        query = (
+            f"Decide if a flight is worth it for going from {state['origin']} to {state['destination']}." +
+            f"If recommending a flight, adjust the itinerary to include the flight times. " + 
+            flight_info
+        )
+        result = llm.invoke(query)
+
+        return result
 
     # Node 2: add times to each activity
     def improve_itinerary_node(state: State) -> dict:
@@ -124,15 +147,17 @@ def generate_improved_itinerary(state: State) -> str:
             f"Remove any content in the response that is unrelated to times, days, and activities: "
             f"{state['improved_itinerary']}"
         )
-        return {"final_itinerary": msg.content}
+        return {"final_itinerary": msg.content + flight_info}
 
     # Build and wire the StateGraph
     workflow = StateGraph(State)
     workflow.add_node("generate_itinerary", generate_itinerary_node)
+    workflow.add_node("generate_flight_with_itinerary", generate_flight_with_itinerary)
     workflow.add_node("improve_itinerary", improve_itinerary_node)
     workflow.add_node("polish_itinerary", polish_itinerary_node)
     workflow.add_edge(START, "generate_itinerary")
-    workflow.add_edge("generate_itinerary", "improve_itinerary")
+    workflow.add_edge("generate_itinerary", "generate_flight_with_itinerary")
+    workflow.add_edge("generate_flight_with_itinerary", "improve_itinerary")
     workflow.add_edge("improve_itinerary", "polish_itinerary")
     workflow.add_edge("polish_itinerary", END)
 
