@@ -12,7 +12,6 @@ def get_directions(api_key, origin, destination):
     """
     return _fetch_directions(api_key, origin, [], destination)
 
-
 def get_directions_via_waypoints(api_key, origin, waypoints, destination, optimize=False):
     """
     Retrieves step-by-step directions from origin, through each waypoint in order,
@@ -26,7 +25,6 @@ def get_directions_via_waypoints(api_key, origin, waypoints, destination, optimi
     :return: List of tuples with (instruction, approx_address) for the full route.
     """
     return _fetch_directions(api_key, origin, waypoints, destination, optimize=optimize)
-
 
 def _fetch_directions(api_key, origin, waypoints, destination, optimize=False):
     """
@@ -65,7 +63,6 @@ def _fetch_directions(api_key, origin, waypoints, destination, optimize=False):
             steps_info.append((instruction, address))
 
     return steps_info
-
 
 def reverse_geocode(api_key, lat, lng):
     """
