@@ -101,13 +101,14 @@ class PromptScreen(Screen):
                 "prompt": prompt_text,
                 "steps": steps
             }
+            
             save_data(data)
 
             # Schedule the UI update back on the main thread
             Clock.schedule_once(lambda dt: self._on_itinerary_ready(), 0)
 
         except Exception as e:
-            Clock.schedule_once(lambda dt: self._display_message(f"Error: {e}"), 0)
+            Clock.schedule_once(lambda dt, error=e: self._display_message(f"Error: {error}"), 0)
 
     def _on_itinerary_ready(self):
         self.update_steps()
@@ -215,4 +216,3 @@ class PromptScreen(Screen):
     #     ]
 
     #     picker.open()
-

@@ -24,7 +24,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 # from langchain.chat_models import ChatOpenAI
 
-
 def get_llm_string(destination, interests, limit=10):
     '''
     Get LLM string from Reddit posts based on destination and interests.
@@ -81,7 +80,7 @@ def get_llm_string(destination, interests, limit=10):
 
     prompt = ChatPromptTemplate.from_template("Answer the question {question} using the provided documents as a reference. Return list of places from the documents: {context}")
     chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
-    query  = "What are some interesting places to visit in Salt Lake City, Utah? I am interested in " + interests
+    query  = "What are some interesting places to visit in {destination}? I am interested in " + interests
     
     result = chain.invoke({"context": reddit_docs, "question": query})
 

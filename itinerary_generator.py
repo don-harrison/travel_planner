@@ -54,8 +54,7 @@ def get_documents(destination: str, interests: str, limit: int = 10) -> list[Doc
 
 
 def build_initial_itinerary(
-    destination: str,
-    interests: str,
+    state,
     prompt_template: str = (
         "Answer the question {question} using the provided documents as a reference. "
         "Return list of places from the documents: {context}"
@@ -78,20 +77,23 @@ def build_initial_itinerary(
     chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
 
     query = (
-        f"Create an itinerary for a trip to {destination} "
-        f"with the following interests: {interests}. "
+        f"Create an itinerary for a trip to {state['destination']}" +
+        f"with the following interests: {state['interests']}. " +
+        f"The person taking the trip is starting in {state['origin']}. " +
+        f"The dates are from: {state['date_start']} to {state['date_end']}. " +
         "Make sure each itinerary entry ends with \n"
     )
-    docs = get_documents(destination, interests, limit=limit)
+    docs = get_documents(state["destination"], state["interests"], limit=limit)
     result = chain.invoke({"context": docs, "question": query})
-    return result
 
+    return result
 
 def generate_improved_itinerary(state: State) -> str:
     """
     Orchestrates a 3-step LLM workflow to generate, improve, and polish an itinerary.
     """
     print(state)
+
     if not GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY not set")
 
@@ -104,8 +106,9 @@ def generate_improved_itinerary(state: State) -> str:
     # Node 1: generate initial itinerary
     def generate_itinerary_node(state: State) -> dict:
         itinerary = build_initial_itinerary(
-            state["destination"], state["interests"], limit=state.get("limit", 10)
+            state, limit=state.get("limit", 10)
         )
+        
         return {"itinerary": itinerary}
 
     # Node 2: add times to each activity
@@ -134,9 +137,18 @@ def generate_improved_itinerary(state: State) -> str:
     workflow.add_edge("polish_itinerary", END)
 
     chain = workflow.compile()
+    
     result_state = chain.invoke({
         "destination": state["destination"],
+        "prompt": state.get("prompt", ""),
+        "origin": state["origin"],
+        "date_start": state["date_start"],
+        "date_end": state["date_end"],
         "interests": state["interests"],
-        "limit": state.get("limit", 10)
+        "limit": state.get("limit", 10),
+        "itinerary": state.get("itinerary", ""),
+        "improved_itinerary": state.get("improved_itinerary", ""),
+        "final_itinerary": state.get("final_itinerary", "")
     })
+
     return result_state["final_itinerary"]
