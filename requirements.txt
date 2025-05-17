@@ -5,3 +5,5 @@ praw
 langchain_google_genai
 langgraph
 geopy
+kivy_garden
+garden install webview

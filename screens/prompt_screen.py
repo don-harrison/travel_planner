@@ -8,6 +8,8 @@ from threading import Thread
 from kivymd.uix.snackbar import (
     MDSnackbar, MDSnackbarSupportingText, MDSnackbarText
 )
+from kivy.uix.screenmanager import SlideTransition
+
 from utils.storage import load_data, save_data
 from datetime import datetime
 from dotenv import load_dotenv
@@ -45,7 +47,14 @@ class PromptScreen(Screen):
                         height=40
                     )
                 )
- 
+
+    def open_google_maps_screen(self, destination):
+        map_screen = self.manager.get_screen('map')
+        map_screen.set_destination(destination)
+        self.manager.transition = SlideTransition(direction='left')
+        self.manager.current = 'map'
+
+
     def clear_itinerary(self):
         self.ids.output_box.clear_widgets()
         data = load_data()

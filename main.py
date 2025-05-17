@@ -3,6 +3,7 @@ from kivy.lang import Builder
 from kivy.uix.screenmanager import ScreenManager
 from screens.home_screen import HomeScreen
 from screens.prompt_screen import PromptScreen
+from screens.map_screen import MapScreen
 from kivy.config import Config
 import ctypes
 
@@ -15,6 +16,7 @@ class TravelPlannerApp(MDApp):
         sm = ScreenManager()
         sm.add_widget(HomeScreen(name="home"))
         sm.add_widget(PromptScreen(name="prompt"))
+        sm.add_widget(MapScreen(name="map"))
         return sm
 
 if __name__ == "__main__":

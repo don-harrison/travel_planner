@@ -36,7 +36,6 @@ class State(TypedDict):
     final_itinerary: str
     sales_pitch: str
 
-
 def get_documents(destination: str, interests: str, limit: int = 10) -> list[Document]:
     """
     Fetch documents for the given destination and interests.
@@ -56,6 +55,18 @@ def get_documents(destination: str, interests: str, limit: int = 10) -> list[Doc
     docs.extend(nps_docs)
 
     return docs
+
+def get_waypoints_from_itinerary(steps):
+    llm = ChatGoogleGenerativeAI(
+        model=GEMINI_MODEL,
+        google_api_key=GEMINI_API_KEY,
+        temperature=0.0,
+    )
+    msg = llm.invoke(
+        f"parse out locations and city from these steps, add a \n to the end of each location you find. At the end of a full days activities, add the word 'stop': "
+        f"{steps.join()}"
+    )
+    return msg.content 
 
 def get_flight_info(origin: str, destination: str, departure_date: str, return_date: str) -> str:
     """

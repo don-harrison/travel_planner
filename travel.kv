@@ -66,6 +66,10 @@
                 on_release: root.clear_itinerary()
                 MDButtonText:
                     text: "Clear Itinerary"
+            MDButton:
+                on_release: root.open_google_maps_screen(destination_label)
+                MDButtonText:
+                    text: "Maps"
         MDTextField:
             id: prompt_input
             hint_text: "Location"
@@ -112,3 +116,34 @@
                 spacing: "8dp"
                 size_hint_y: None
                 height: self.minimum_height
+
+<Map>:
+    name: "map"
+    md_bg_color: self.theme_cls.backgroundColor
+    on_pre_enter: root.load_map()
+
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: "16dp"
+        spacing: "8dp"
+
+        MDButton:
+            on_release: app.root.current = "prompt"
+            MDButtonText:
+                text: "Back"
+
+        MDTopAppBar:
+            title: "Your Route"
+            left_action_items: [["arrow-left", lambda x: app.change_screen("prompt")]]
+
+        MDLabel:
+            id: route_label
+            text: "Trip loading..."
+            halign: "center"
+            theme_font_style: "H6"
+            size_hint_y: None
+            height: self.texture_size[1]
+
+        WebView:
+            id: webview
+            size_hint_y: 1
