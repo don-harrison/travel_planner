@@ -18,6 +18,7 @@ from langgraph.graph import StateGraph, START, END
 import reddit_data as rd
 import nps_api_search as nps
 import flight_info as fi
+import hotel_info as hi
 
 # Define the shape of the workflow state
 class State(TypedDict):
@@ -30,8 +31,10 @@ class State(TypedDict):
     limit: int
     itinerary: str
     itinerary_with_flight: str
+    interest_with_hotel: str
     improved_itinerary: str
     final_itinerary: str
+    sales_pitch: str
 
 
 def get_documents(destination: str, interests: str, limit: int = 10) -> list[Document]:
@@ -59,6 +62,12 @@ def get_flight_info(origin: str, destination: str, departure_date: str, return_d
     Get flight information for the itinerary.
     """
     return fi.find_flights(origin, destination, departure_date, return_date)
+
+def get_hotel_info(city_name: str, check_in: str, check_out: str) -> str:
+    """
+    Get hotel information for the itinerary.
+    """
+    return hi.find_hotels(city_name, check_in, check_out)
 
 def build_initial_itinerary(
     state,
@@ -112,6 +121,7 @@ def generate_improved_itinerary(state: State) -> str:
     )
 
     flight_info = get_flight_info(origin = state["origin"], destination = state["destination"], departure_date = state["date_start"], return_date = state["date_end"])
+    hotel_info =  get_hotel_info(city_name = state["destination"], check_in = state["date_start"], check_out = state["date_end"])
 
     # Node 1: generate initial itinerary
     def generate_itinerary_node(state: State) -> dict:
@@ -121,14 +131,26 @@ def generate_improved_itinerary(state: State) -> str:
         
         return {"itinerary": itinerary}
     
-    def generate_flight_with_itinerary(state: State) -> dict:
+    def generate_itinerary_with_flight(state: State) -> dict:
         """
         Generate flight information.
         """
         query = (
             f"Decide if a flight is worth it for going from {state['origin']} to {state['destination']}." +
-            f"If recommending a flight, adjust the itinerary to include the flight times. " + 
+            f"If it is decided to use flights, include the flight information in the itinerary and adjust the itinerary accordingly. " + 
             flight_info
+        )
+        result = llm.invoke(query)
+
+        return result
+    
+    def generate_itinerary_with_hotel(state: State) -> dict:
+        """
+        Generate hotel information.
+        """
+        query = (
+            f"If the user does not have camping as an interest, incorporate a recommended hotel into the itinerary." + 
+            hotel_info
         )
         result = llm.invoke(query)
 
@@ -147,19 +169,35 @@ def generate_improved_itinerary(state: State) -> str:
             f"Remove any content in the response that is unrelated to times, days, and activities: "
             f"{state['improved_itinerary']}"
         )
-        return {"final_itinerary": msg.content + flight_info}
+        return {"final_itinerary": msg.content + flight_info + hotel_info}
+    
+    def sales_pitch_node(state: State) -> dict:
+        """
+        Final node to return the final itinerary as a sales pitch for the trip in an markup format.
+        """
+        msg = llm.invoke(
+            f"As a travel blogger in your free time, you are also a travel agent. Your goal is to sell this trip to a client. " +
+            f"Using the following itinerary, create the sales pitch for the trip: {state['final_itinerary']}"+
+            f"Describe the trip in a way that makes it sound exciting and fun. Tell them what experiences they will have." +
+            f"Don't include the itinerary, flight, or hotel information in the response and keep the response to 350 words or less. "
+        )
+        return {"sales_pitch": msg.content + "\n\n" + state["final_itinerary"]}
 
     # Build and wire the StateGraph
     workflow = StateGraph(State)
     workflow.add_node("generate_itinerary", generate_itinerary_node)
-    workflow.add_node("generate_flight_with_itinerary", generate_flight_with_itinerary)
+    workflow.add_node("generate_itinerary_with_flight", generate_itinerary_with_flight)
+    workflow.add_node("generate_itinerary_with_hotel", generate_itinerary_with_hotel)
     workflow.add_node("improve_itinerary", improve_itinerary_node)
     workflow.add_node("polish_itinerary", polish_itinerary_node)
+    workflow.add_node("generate_sales_pitch", sales_pitch_node)
     workflow.add_edge(START, "generate_itinerary")
-    workflow.add_edge("generate_itinerary", "generate_flight_with_itinerary")
-    workflow.add_edge("generate_flight_with_itinerary", "improve_itinerary")
+    workflow.add_edge("generate_itinerary", "generate_itinerary_with_flight")
+    workflow.add_edge("generate_itinerary_with_flight", "generate_itinerary_with_hotel")
+    workflow.add_edge("generate_itinerary_with_hotel", "improve_itinerary")
     workflow.add_edge("improve_itinerary", "polish_itinerary")
-    workflow.add_edge("polish_itinerary", END)
+    workflow.add_edge("polish_itinerary", "generate_sales_pitch")
+    workflow.add_edge("generate_sales_pitch", END)
 
     chain = workflow.compile()
     
@@ -173,7 +211,8 @@ def generate_improved_itinerary(state: State) -> str:
         "limit": state.get("limit", 10),
         "itinerary": state.get("itinerary", ""),
         "improved_itinerary": state.get("improved_itinerary", ""),
-        "final_itinerary": state.get("final_itinerary", "")
+        "final_itinerary": state.get("final_itinerary", ""),
+        "sales_pitch": state.get("sales_pitch", "")
     })
 
-    return result_state["final_itinerary"]
+    return result_state["sales_pitch"]
