@@ -180,7 +180,7 @@ def generate_improved_itinerary(state: State) -> str:
             f"Remove any content in the response that is unrelated to times, days, and activities: "
             f"{state['improved_itinerary']}"
         )
-        return {"final_itinerary": msg.content + flight_info + hotel_info}
+        return {"final_itinerary": msg.content + "\n" + flight_info + "\n" + hotel_info}
     
     def sales_pitch_node(state: State) -> dict:
         """
