@@ -56,7 +56,7 @@ def get_documents(destination: str, interests: str, limit: int = 10) -> list[Doc
 
     docs.extend(reddit_docs)
     docs.extend(nps_docs)
-    docs.extend(wikipedia_docs)
+    # docs.extend(wikipedia_docs)
 
     return docs
 
