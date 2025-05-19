@@ -1,3 +1,4 @@
+from operator import index
 import re
 from kivymd.uix.label import MDLabel
 from kivymd.uix.button import MDButton, MDButtonText
@@ -12,7 +13,9 @@ from threading import Thread
 from kivymd.uix.snackbar import (
     MDSnackbar, MDSnackbarSupportingText, MDSnackbarText
 )
+import textwrap
 from kivy.uix.screenmanager import SlideTransition
+from numpy import pad
 
 from utils.storage import load_data, save_data
 from datetime import datetime
@@ -34,67 +37,140 @@ class PromptScreen(Screen):
         return super().on_enter(*args)
     
     def load_steps(self):
+        self.ids.output_box.clear_widgets()
+
         data = load_data()
         steps = data["plans"][self.destination]["steps"]
+        if not steps:
+            return
 
-        if steps:
-            day_title = ""
-            entries = []
+        sales_pitch = []
+        post_trip_info = []
+        day_title = ""
+        entries = []
+        in_schedule = False
+        entry_pattern = re.compile(r"\*\s+\*\*(.+?)\*\*\s*(.*)")
 
-            def add_day_section(day_title, entries):
-                print(entries)
-                # Add elevated button as day header
-                self.ids.output_box.add_widget(
-                    MDButton(
-                        MDButtonText(text=day_title),
-                        style="elevated",
-                        size_hint_y=None,
-                        height=dp(40),
-                    )
+        day_widgets = []  # we'll collect all middle itinerary widgets here
+
+        def build_day_widgets(day_title, entries):
+            widgets = []
+            widgets.append(
+                MDButton(
+                    MDButtonText(text=day_title),
+                    style="elevated",
+                    size_hint_y=None,
+                    height=dp(40),
                 )
+            )
+            for time, desc in entries:
+                row = MDBoxLayout(
+                    orientation="horizontal",
+                    spacing=dp(10),
+                    size_hint_y=None,
+                    height=dp(36),
+                    padding=(dp(10), 0),
+                )
+                row.add_widget(MDButton(
+                    MDButtonText(text=time),
+                    style="text",
+                    size_hint=(None, None),
+                    height=dp(30),
+                    width=dp(80),
+                ))
+                row.add_widget(MDLabel(
+                    text=desc,
+                    size_hint_y=None,
+                    height=dp(30),
+                ))
+                widgets.append(row)
+            return widgets
 
-                # Add time + description per entry
-                for time, desc in entries:
-                    row = MDBoxLayout(
-                        orientation="horizontal",
-                        spacing=dp(10),
-                        size_hint_y=None,
-                        height=dp(36),
-                        padding=(dp(10), 0),
-                    )
+        for step in steps:
+            step = step.strip()
+            if not step:
+                continue
 
-                    time_button = MDButton(
-                        MDButtonText(text=time),
-                        style="text",
-                        size_hint=(None, None),
-                        height=dp(30),
-                        width=dp(80),
-                    )
+            if step.startswith("**Day"):
+                if day_title and entries:
+                    day_widgets.extend(build_day_widgets(day_title, entries))
+                day_title = step.strip("*").strip()
+                entries = []
+                in_schedule = True
+                continue
 
-                    desc_label = MDLabel(
-                        text=desc
-                    )
+            if in_schedule and step.startswith("*"):
+                match = entry_pattern.match(step)
+                if match:
+                    time = match.group(1).strip()
+                    desc = match.group(2).strip()
+                    max_len = 80
 
-                    row.add_widget(time_button)
-                    row.add_widget(desc_label)
-                    self.ids.output_box.add_widget(row)
+                    if len(desc) > max_len:
+                        chunks = textwrap.wrap(desc, width=max_len)
+                        entries.append((time, chunks[0]))
+                        for chunk in chunks[1:]:
+                            entries.append(("", chunk))
+                    else:
+                        entries.append((time, desc))
+                continue
 
-            entry_pattern = re.compile(r"\*\s+\*\*(.+?)\*\*\s*(.*)")
+            if in_schedule:
+                post_trip_info.append(step)
+                continue
 
-            for step in steps:
-                step = step.strip()
-                if step.startswith("**Day"):
-                    if day_title:
-                        add_day_section(day_title, entries)
-                    day_title = step.strip("*").strip()
-                    entries = []
-                elif step.startswith("*"):
-                    match = entry_pattern.match(step)
-                    if match:
-                        entries.append((match.group(1).strip(), match.group(2).strip()))
+            if not in_schedule and not step.startswith("*"):
+                sales_pitch.append(step)
 
-            if day_title and entries:
-                add_day_section(day_title, entries)
+        if day_title and entries:
+            day_widgets.extend(build_day_widgets(day_title, entries))
+
+        # Build final widget list
+        all_widgets = []
+
+        # ➤ Sales pitch (ensure this goes at the very top)
+        for para in sales_pitch:
+            all_widgets.append(MDLabel(
+                text=para,
+                font_size=14,
+                size_hint_y=None,
+                height=dp(40)
+            ))
+
+        # ➤ Day itinerary
+        all_widgets.extend(day_widgets)
+
+        # ➤ Post-trip info
+        if post_trip_info:
+            footer_card = MDCard(
+                orientation="vertical",
+                padding=dp(16),
+                spacing=dp(8),
+                size_hint_y=None,
+                height=min(dp(400), dp(24) * len(post_trip_info) + dp(32)),
+                radius=[12],
+                elevation=3
+            )
+            footer_card.add_widget(MDLabel(
+                text="Logistics & Final Notes",
+                theme_font_style="Subtitle1",
+                size_hint_y=None,
+                height=dp(28),
+            ))
+            for line in post_trip_info:
+                footer_card.add_widget(MDLabel(
+                    text=line,
+                    theme_font_style="BodyMedium",
+                    size_hint_y=None,
+                    height=dp(24),
+                    text_size=(self.width - dp(32), None),
+                ))
+            all_widgets.append(footer_card)
+
+        # Add all at once in correct order
+        for widget in all_widgets:
+            self.ids.output_box.add_widget(widget)
+
 
     def set_destination(self, destination):
         self.destination = destination
@@ -190,6 +266,15 @@ class PromptScreen(Screen):
             height=40
         )
         self.ids.output_box.add_widget(lbl)
+
+    def _add_step_top(self, step):
+        lbl = MDLabel(
+            text=step,
+            font_size=14,
+            size_hint_y=None,
+            height=40
+        )
+        self.ids.output_box.add_widget(lbl, index=0)
 
     def _display_message(self, msg):
         self.ids.output_box.clear_widgets()

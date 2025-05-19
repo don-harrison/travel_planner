@@ -2,12 +2,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
-import praw
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
-from langchain_community.document_loaders import WikipediaLoader, RedditPostsLoader
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -52,11 +50,12 @@ def get_documents(destination: str, interests: str, limit: int = 10) -> list[Doc
     
     nps_docs = [Document(page_content=text) for text in nps_strings]
 
-    wikipedia_docs = wi.get_wikipedia_based_answer(destination, interests, GEMINI_API_KEY)
+    wikipedia_strings = wi.get_llm_string(destination, interests, limit=limit)
+    wikipedia_docs = [Document(page_content=text) for text in wikipedia_strings]
 
     docs.extend(reddit_docs)
     docs.extend(nps_docs)
-    # docs.extend(wikipedia_docs)
+    docs.extend(wikipedia_docs)
 
     return docs
 
