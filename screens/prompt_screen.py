@@ -182,6 +182,12 @@ class PromptScreen(Screen):
     def open_google_maps_screen(self, destination):
         map_screen = self.manager.get_screen('map')
         map_screen.set_destination(self.destination)
+
+        data = load_data()
+        daily_waypoints = extract_waypoint_schedule_from_gemini_output(data["plans"][self.destination]["steps"], self.destination, data)
+        data["plans"][self.destination]["daily_waypoints"] = daily_waypoints
+        save_data(data)
+
         self.manager.transition = SlideTransition(direction='left')
         self.manager.current = 'map'
 
@@ -235,13 +241,12 @@ class PromptScreen(Screen):
             itinerary = ig.generate_improved_itinerary(state)
 
             steps = itinerary.split("\n")
-            daily_waypoints = extract_waypoint_schedule_from_gemini_output(steps)
             
             data["plans"][self.destination] = {
                 "destination": self.destination,
                 "prompt": prompt_text,
                 "steps": steps,
-                "daily_waypoints": daily_waypoints,
+                "daily_waypoints": "",
             }
             
             save_data(data)

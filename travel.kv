@@ -140,10 +140,22 @@
         padding: "16dp"
         spacing: "8dp"
 
-        MDButton:
-            on_release: app.root.current = "prompt"
-            MDButtonText:
-                text: "Back"
+        MDBoxLayout:
+            orientation: "horizontal"
+            spacing: "12dp"
+            size_hint_y: None
+            height: "48dp"
+
+            MDButton:
+                id: day_button
+                on_release: root.open_day_menu()
+                MDButtonText:
+                    text: root.selected_day
+
+            MDButton:
+                on_release: app.root.current = "prompt"
+                MDButtonText:
+                    text: "Back"
 
         MDTopAppBar:
             title: "Your Route"

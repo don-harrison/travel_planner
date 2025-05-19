@@ -6,3 +6,4 @@ langchain_google_genai
 langgraph
 geopy
 git+https://github.com/kivy-garden/mapview.git
+openrouteservice

@@ -115,10 +115,17 @@ class Map(MDScreen):
         if self.ferry_line:
             Clock.schedule_once(lambda dt: self.ferry_line.reposition(), 0.1)
 
+
     def open_day_menu(self):
-        if not self.menu:
-            items = [{"text": day, "on_release": lambda x=day: self.select_day(x)} for day in self.waypoint_schedule]
-            self.menu = MDDropdownMenu(caller=self.ids.day_button, items=items, width_mult=4)
+        items = [
+            {"text": day, "on_release": lambda x=day: self.select_day(x)}
+            for day in self.waypoint_schedule.keys()
+        ]
+        self.menu = MDDropdownMenu(
+            caller=self.ids.day_button,
+            items=items,
+            width_mult=4,
+        )
         self.menu.open()
 
     def select_day(self, day):
@@ -160,7 +167,7 @@ class Map(MDScreen):
             self.ids.route_label.text = "No waypoints available."
             return
 
-        self.ids.route_label.text = f"Route: {waypoints[0]} → {waypoints[-1]}"
+        self.ids.route_label.text = f"Route: {self.waypoint_schedule[day]}"
         points = []
         valid_waypoints = []
 

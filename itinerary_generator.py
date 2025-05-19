@@ -21,6 +21,8 @@ import wikipedia_info as wi
 from collections import defaultdict
 import re
 import time
+from kivy.logger import Logger
+from utils.storage import load_data, save_data
 
 def safe_invoke(llm, prompt, delay=2, retries=3):
     """
@@ -54,52 +56,69 @@ class State(TypedDict):
     final_itinerary: str
     sales_pitch: str
 
-def get_waypoints_from_itinerary(steps):
+
+def get_waypoints_from_itinerary(steps, destination, data):
+    """Send the raw itinerary steps to Gemini and return a list of non-empty lines."""
+
     llm = ChatGoogleGenerativeAI(
         model=GEMINI_MODEL,
         google_api_key=GEMINI_API_KEY,
         temperature=0.0,
     )
 
-    # Join list of steps with newline separator
     itinerary_text = "\n".join(steps)
-
     prompt = (
-        "Parse out locations and cities from these steps. "
-        "Add a newline after each location, and add the word 'stop' after each day's activities:\n\n"
+        "Take the following itinerary and extract the locations for each day. Add a \n\n character to the end of each location and add the word stop when the end of a day's activities is reached. The only permitted items in this list are locations and the word stop to delimit the end of a day's activities. Be specific with the location using the destination {destination} and the activity so it can be searched on a navigation app. \n\n"
         f"{itinerary_text}"
     )
 
-    msg = safe_invoke(llm,prompt)
-    return msg.content
+    msg = safe_invoke(llm, prompt)
+    Logger.info(f"Gemini Response: {msg.content}")
+    
+    # split into lines, strip blanks
+    waypoints = [line.strip() for line in msg.content.splitlines() if line.strip()]
 
-def extract_waypoint_schedule_from_gemini_output(steps):
+    Logger.info(f'Waypoints: {waypoints}')
+
+    return waypoints
+
+def extract_waypoint_schedule_from_gemini_output(steps, destination, data):
     """
-    Parse structured itinerary lines into a dictionary of days and waypoints.
-
+    Turn the Gemini output into a dict of days → list of waypoints.
+    
     Args:
-        lines (list of str): Gemini output lines like "Day 1: Place A, Place B"
-
+        steps (list[str]): your original steps
+    
     Returns:
-        dict: {"Day 1": ["Place A", "Place B"], ...}
+        dict[str, list[str]]
     """
-    schedule = defaultdict(list)
-    day_pattern = re.compile(r"(Day\s*\d+):\s*(.*)", re.IGNORECASE)
+    if(len(data["plans"][destination]["daily_waypoints"]) > 0):
+        # if we already have waypoints, return them
+        Logger.info(f"Waypoints already exist for {destination}.")
+        return data["plans"][destination]["daily_waypoints"]
+    else:
+        lines = get_waypoints_from_itinerary(steps, destination, data)
+        schedule = {}
+        day_count = 1
+        current_day = None
 
-    lines = get_waypoints_from_itinerary(steps)
+        for line in lines:
+            if line.lower() == "stop":
+                # end current day
+                current_day = None
+                day_count += 1
+                continue
 
-    for line in lines:
-        match = day_pattern.match(line.strip())
-        if match:
-            day, waypoints_str = match.groups()
-            # Split on commas or "→" or "->"
-            waypoints = re.split(r",|→|->", waypoints_str)
-            schedule[day.strip()] = [w.strip() for w in waypoints if w.strip()]
-        else:
-            # Skip or handle lines that don't match
-            continue
+            # start a new day if needed
+            if current_day is None:
+                current_day = f"Day {day_count}"
+                schedule[current_day] = []
 
-    return dict(schedule)
+            # append this waypoint
+            schedule[current_day].append(line)
+
+        Logger.info(f"Extracted schedule: {schedule}")
+        return schedule
 
 def get_documents(destination: str, interests: str, limit: int = 10) -> list[Document]:
     """
