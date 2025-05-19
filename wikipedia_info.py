@@ -5,12 +5,10 @@ from langchain_community.document_loaders import WikipediaLoader
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 def get_wikipedia_based_answer(
-    wiki_topic,
-    question,
+    location,
+    interests,
     google_api_key,
-    model="gemini-2.0-flash",
-    max_docs=10,
-    temperature=0.0
+    max_docs=10
 ):
     """
     Retrieves information from Wikipedia using fuzzy topic search and answers a question using LLM.
@@ -29,35 +27,28 @@ def get_wikipedia_based_answer(
             'used_titles': list of str
         }
     """
+    model="gemini-2.0-flash"
     try:
         # Initialize Gemini model
         llm = ChatGoogleGenerativeAI(
             google_api_key=google_api_key,
-            model=model,
-            temperature=temperature
+            model=model
         )
 
         # Load Wikipedia documents using fuzzy search
-        documents = WikipediaLoader(
-            query=wiki_topic,
+        wiki_docs = WikipediaLoader(
+            query=location,
             load_max_docs=max_docs,
             load_all_available_meta=True
         ).load()
 
-        titles = [doc.metadata['title'] for doc in documents]
 
-        # Prepare prompt and chain
-        prompt = ChatPromptTemplate.from_template(
-            "Answer the question {question} using the provided documents: {context}"
-        )
+        prompt = ChatPromptTemplate.from_template("Answer the question {question} using the provided documents as a reference. Return list of places from the documents: {context}")
         chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
-
-        # Run chain and return result
-        result = chain.invoke({"context": documents, "question": question})
-        return {
-            "answer": result,
-            "used_titles": titles
-        }
+        query  = "What are some interesting places to visit in {destination}? I am interested in " + interests
+        
+        result = chain.invoke({"context": wiki_docs, "question": query})
+        return result
 
     except Exception as e:
         return {

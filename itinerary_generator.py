@@ -19,6 +19,7 @@ import reddit_data as rd
 import nps_api_search as nps
 import flight_info as fi
 import hotel_info as hi
+import wikipedia_info as wi
 
 # Define the shape of the workflow state
 class State(TypedDict):
@@ -51,8 +52,11 @@ def get_documents(destination: str, interests: str, limit: int = 10) -> list[Doc
     
     nps_docs = [Document(page_content=text) for text in nps_strings]
 
+    wikipedia_docs = wi.get_wikipedia_based_answer(destination, interests, GEMINI_API_KEY)
+
     docs.extend(reddit_docs)
     docs.extend(nps_docs)
+    docs.extend(wikipedia_docs)
 
     return docs
 
