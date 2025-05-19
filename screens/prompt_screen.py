@@ -1,5 +1,9 @@
 import re
 from kivymd.uix.label import MDLabel
+from kivymd.uix.button import MDButton, MDButtonText
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.card import MDCard
+from kivy.uix.label import Label
 from kivymd.uix.pickers import MDDockedDatePicker
 from kivy.clock import Clock
 from kivy.uix.screenmanager import Screen
@@ -34,19 +38,67 @@ class PromptScreen(Screen):
         self.ids.destination_label.text = f"What do you want to do in {destination}?"
         self.ids.prompt_input.text = ""
         self.ids.output_box.clear_widgets()
-        data = load_data()
 
-        #If the destination already has a plan, load it into the label for directions
-        if data["plans"][destination]["steps"]:
-            for step in data["plans"][destination]["steps"]:
-                self.ids.output_box.add_widget(
-                    MDLabel(
-                        text = step,
-                        font_size=14,
-                        size_hint_y=None,
-                        height=40
-                    )
+        data = load_data()
+        steps = data["plans"].get(destination, {}).get("steps", [])
+
+        day_title = ""
+        entries = []
+
+        def add_day_section(day_title, entries):
+            print(entries)
+            # Add elevated button as day header
+            self.ids.output_box.add_widget(
+                MDButton(
+                    MDButtonText(text=day_title),
+                    style="elevated",
+                    size_hint_y=None,
+                    height=dp(40),
                 )
+            )
+
+            # Add time + description per entry
+            for time, desc in entries:
+                row = MDBoxLayout(
+                    orientation="horizontal",
+                    spacing=dp(10),
+                    size_hint_y=None,
+                    height=dp(36),
+                    padding=(dp(10), 0),
+                )
+
+                time_button = MDButton(
+                    MDButtonText(text=time),
+                    style="text",
+                    size_hint=(None, None),
+                    height=dp(30),
+                    width=dp(80),
+                )
+
+                desc_label = MDLabel(
+                    text=desc
+                )
+
+                row.add_widget(time_button)
+                row.add_widget(desc_label)
+                self.ids.output_box.add_widget(row)
+
+        entry_pattern = re.compile(r"\*\s+\*\*(.+?)\*\*\s*(.*)")
+
+        for step in steps:
+            step = step.strip()
+            if step.startswith("**Day"):
+                if day_title:
+                    add_day_section(day_title, entries)
+                day_title = step.strip("*").strip()
+                entries = []
+            elif step.startswith("*"):
+                match = entry_pattern.match(step)
+                if match:
+                    entries.append((match.group(1).strip(), match.group(2).strip()))
+
+        if day_title and entries:
+            add_day_section(day_title, entries)
 
     def open_google_maps_screen(self, destination):
         map_screen = self.manager.get_screen('map')
