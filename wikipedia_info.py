@@ -46,8 +46,9 @@ def get_wikipedia_based_answer(
         prompt = ChatPromptTemplate.from_template("Answer the question {question} using the provided documents as a reference. Return list of places from the documents: {context}")
         chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
         query  = "What are some interesting places to visit in {destination}? I am interested in " + interests
-        
-        result = chain.invoke({"context": wiki_docs, "question": query})
+        context = "\n\n".join([doc.page_content for doc in wiki_docs])
+        result = chain.invoke({"context": context, "question": query})
+
         return result
 
     except Exception as e:
