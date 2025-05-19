@@ -134,7 +134,6 @@
 <Map>:
     name: "map"
     md_bg_color: self.theme_cls.backgroundColor
-    on_pre_enter: root.load_map()
 
     MDBoxLayout:
         orientation: "vertical"
@@ -158,6 +157,6 @@
             size_hint_y: None
             height: self.texture_size[1]
 
-        WebView:
-            id: webview
+        MapView:
+            id: mapview
             size_hint_y: 1
