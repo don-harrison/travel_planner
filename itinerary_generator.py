@@ -18,6 +18,25 @@ import nps_api_search as nps
 import flight_info as fi
 import hotel_info as hi
 import wikipedia_info as wi
+from collections import defaultdict
+import re
+import time
+
+def safe_invoke(llm, prompt, delay=2, retries=3):
+    """
+    Calls LLM with delay and retry logic to avoid hitting rate limits.
+    """
+    for attempt in range(retries):
+        try:
+            time.sleep(delay)
+            return llm.invoke(prompt)
+        except Exception as e:
+            if "ResourceExhausted" in str(e) and attempt < retries - 1:
+                delay *= 2
+                print(f"[Retrying] Quota hit, retrying in {delay} seconds...")
+                continue
+            raise
+
 
 # Define the shape of the workflow state
 class State(TypedDict):
@@ -34,6 +53,53 @@ class State(TypedDict):
     improved_itinerary: str
     final_itinerary: str
     sales_pitch: str
+
+def get_waypoints_from_itinerary(steps):
+    llm = ChatGoogleGenerativeAI(
+        model=GEMINI_MODEL,
+        google_api_key=GEMINI_API_KEY,
+        temperature=0.0,
+    )
+
+    # Join list of steps with newline separator
+    itinerary_text = "\n".join(steps)
+
+    prompt = (
+        "Parse out locations and cities from these steps. "
+        "Add a newline after each location, and add the word 'stop' after each day's activities:\n\n"
+        f"{itinerary_text}"
+    )
+
+    msg = safe_invoke(llm,prompt)
+    return msg.content
+
+def extract_waypoint_schedule_from_gemini_output(steps):
+    """
+    Parse structured itinerary lines into a dictionary of days and waypoints.
+
+    Args:
+        lines (list of str): Gemini output lines like "Day 1: Place A, Place B"
+
+    Returns:
+        dict: {"Day 1": ["Place A", "Place B"], ...}
+    """
+    schedule = defaultdict(list)
+    day_pattern = re.compile(r"(Day\s*\d+):\s*(.*)", re.IGNORECASE)
+
+    lines = get_waypoints_from_itinerary(steps)
+
+    for line in lines:
+        match = day_pattern.match(line.strip())
+        if match:
+            day, waypoints_str = match.groups()
+            # Split on commas or "→" or "->"
+            waypoints = re.split(r",|→|->", waypoints_str)
+            schedule[day.strip()] = [w.strip() for w in waypoints if w.strip()]
+        else:
+            # Skip or handle lines that don't match
+            continue
+
+    return dict(schedule)
 
 def get_documents(destination: str, interests: str, limit: int = 10) -> list[Document]:
     """
@@ -58,18 +124,6 @@ def get_documents(destination: str, interests: str, limit: int = 10) -> list[Doc
     docs.extend(wikipedia_docs)
 
     return docs
-
-def get_waypoints_from_itinerary(steps):
-    llm = ChatGoogleGenerativeAI(
-        model=GEMINI_MODEL,
-        google_api_key=GEMINI_API_KEY,
-        temperature=0.0,
-    )
-    msg = llm.invoke(
-        f"parse out locations and city from these steps, add a \n to the end of each location you find. At the end of a full days activities, add the word 'stop': "
-        f"{steps.join()}"
-    )
-    return msg.content 
 
 def get_flight_info(origin: str, destination: str, departure_date: str, return_date: str) -> str:
     """
@@ -154,7 +208,7 @@ def generate_improved_itinerary(state: State) -> str:
             f"If it is decided to use flights, include the flight information in the itinerary and adjust the itinerary accordingly. " + 
             flight_info
         )
-        result = llm.invoke(query)
+        result = safe_invoke(llm, query)
 
         return result
     
@@ -166,35 +220,36 @@ def generate_improved_itinerary(state: State) -> str:
             f"If the user does not have camping as an interest, incorporate a recommended hotel into the itinerary." + 
             hotel_info
         )
-        result = llm.invoke(query)
+        result = safe_invoke(llm, query)
 
         return result
 
     # Node 2: add times to each activity
     def improve_itinerary_node(state: State) -> dict:
-        msg = llm.invoke(
-            f"Ensure this itinerary has times associated with each activity: {state['itinerary']}"
-        )
+        query = f"Ensure this itinerary has times associated with each activity: {state['itinerary']}"
+        msg = safe_invoke(llm, query)
+
         return {"improved_itinerary": msg.content}
 
     # Node 3: remove any unrelated content
     def polish_itinerary_node(state: State) -> dict:
-        msg = llm.invoke(
-            f"Remove any content in the response that is unrelated to times, days, and activities: "
-            f"{state['improved_itinerary']}"
-        )
+        query = f"Remove any content in the response that is unrelated to times, days, and activities: {state['improved_itinerary']}"
+        msg = safe_invoke(llm, query)
+
         return {"final_itinerary": msg.content + "\n" + flight_info + "\n" + hotel_info}
     
     def sales_pitch_node(state: State) -> dict:
         """
         Final node to return the final itinerary as a sales pitch for the trip in an markup format.
         """
-        msg = llm.invoke(
-            f"As a travel blogger in your free time, you are also a travel agent. Your goal is to sell this trip to a client. " +
-            f"Using the following itinerary, create the sales pitch for the trip: {state['final_itinerary']}"+
-            f"Describe the trip in a way that makes it sound exciting and fun. Tell them what experiences they will have." +
+        query = (
+            f"As a travel blogger in your free time, you are also a travel agent. Your goal is to sell this trip to a client. "
+            f"Using the following itinerary, create the sales pitch for the trip: {state['final_itinerary']}"
+            f"Describe the trip in a way that makes it sound exciting and fun. Tell them what experiences they will have."
             f"Don't include the itinerary, flight, or hotel information in the response and keep the response to 350 words or less. "
         )
+        msg = safe_invoke(llm, query)
+        
         return {"sales_pitch": msg.content + "\n\n" + state["final_itinerary"]}
 
     # Build and wire the StateGraph

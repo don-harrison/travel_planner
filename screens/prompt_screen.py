@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 import os
 from kivymd.uix.pickers import MDModalDatePicker
 from datetime import date, timedelta  # This gives you the 'date' type
-
+from itinerary_generator import extract_waypoint_schedule_from_gemini_output
 #Local imports
 from google_directions import get_directions_via_waypoints
 import itinerary_generator as ig
@@ -171,7 +171,6 @@ class PromptScreen(Screen):
         for widget in all_widgets:
             self.ids.output_box.add_widget(widget)
 
-
     def set_destination(self, destination):
         self.destination = destination
         self.ids.destination_label.text = f"What do you want to do in {destination}?"
@@ -182,7 +181,7 @@ class PromptScreen(Screen):
 
     def open_google_maps_screen(self, destination):
         map_screen = self.manager.get_screen('map')
-        map_screen.set_destination(destination)
+        map_screen.set_destination(self.destination)
         self.manager.transition = SlideTransition(direction='left')
         self.manager.current = 'map'
 
@@ -236,11 +235,13 @@ class PromptScreen(Screen):
             itinerary = ig.generate_improved_itinerary(state)
 
             steps = itinerary.split("\n")
-
+            daily_waypoints = extract_waypoint_schedule_from_gemini_output(steps)
+            
             data["plans"][self.destination] = {
                 "destination": self.destination,
                 "prompt": prompt_text,
-                "steps": steps
+                "steps": steps,
+                "daily_waypoints": daily_waypoints,
             }
             
             save_data(data)
@@ -294,20 +295,6 @@ class PromptScreen(Screen):
             data["plans"][self.destination]["date_end"] = instance_date_picker.max_date
             self.date_start = instance_date_picker.min_date
             self.date_end = instance_date_picker.max_date
-            
-            MDSnackbar(
-                MDSnackbarText(
-                    text="Selected dates is:"
-                ),
-                MDSnackbarSupportingText(
-                    text="\n".join(str(date) for date in instance_date_picker.get_date()),
-                    padding=[0, 0, 0, dp(12)],
-                ),
-                y=dp(124),
-                pos_hint={"center_x": 0.5},
-                size_hint_x=0.5,
-                padding=[0, 0, "8dp", "8dp"],
-            ).open()
             
     def on_date_focus(self, instance, focused):
         if focused:  # Only when the user clicks into the field
