@@ -107,15 +107,29 @@
             size_hint_y: None
             height: self.texture_size[1]
 
-        ScrollView:
-            size_hint_y: 1
+        MDCard:
+            orientation: "vertical"
+            padding: "12dp"
+            radius: [12]
+            elevation: 2
+            md_bg_color: "white"
+            size_hint_y: 1  # or adjust as needed
 
-            MDGridLayout:
-                id: output_box
-                cols: 1
-                spacing: "8dp"
+            MDLabel:
+                text: "Generated Itinerary"
+                theme_font_style: "Subtitle1"
+                halign: "center"
                 size_hint_y: None
-                height: self.minimum_height
+                height: self.texture_size[1]
+                padding: [0, "8dp"]
+
+            ScrollView:
+                MDGridLayout:
+                    id: output_box
+                    cols: 1
+                    spacing: "8dp"
+                    size_hint_y: None
+                    height: self.minimum_height
 
 <Map>:
     name: "map"
