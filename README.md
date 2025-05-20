@@ -1,4 +1,3 @@
-=========================
 # 🧭 Personalized Travel Planning Assistant
 
 ## 📌 Project Overview
@@ -71,9 +70,10 @@ Although this is not a predictive model, we evaluated our results by:
 - Expand and polish the KivyMD-based GUI; add touch interaction and completed MapView integration.
 - Integrate real-time flight and lodging APIs like Amadeus or Booking.com.
 - Enable itinerary saving, sharing, and export options (PDF, email, calendar).
+- Optimize API requests using multithreading.
+- Experiment with local LLM alternatives to Gemini for offline usage.
 
 ---
-
 ## 🧰 Setup Instructions
 
 1. Clone the repo  
@@ -95,6 +95,43 @@ python main.py
 ```bash
 buildozer android debug
 ```
+---
+## 🔁 LangGraph Pipeline Overview
+
+After fetching destination-related data from APIs, we pass it into LangChain to match locations more closely to the user's interests using prompt engineering. The refined set of documents is then passed into a LangGraph workflow to structure the itinerary generation process.
+
+LangGraph organizes this flow into sequential LLM-powered nodes, each transforming or enriching the state:
+
+1. **Generate Itinerary** – Creates a draft multi-day plan from interest-aligned documents.
+2. **Add Flight Info** – Decides whether air travel is relevant and incorporates flight details if useful.
+3. **Add Hotel Info** – Recommends accommodations unless the user has preferences like camping.
+4. **Improve Itinerary** – Adds time blocks and adjusts the order of activities for realism.
+5. **Polish Itinerary** – Cleans up extraneous text and ensures a readable daily format.
+6. **Generate Sales Pitch** – Produces a blog-style summary to "sell" the trip, stored in state for final output.
+
+This node-based orchestration allows for clean transitions, incremental LLM reasoning, and safeguards against hallucination. Each step is modular and traceable, with LangChain components providing flexible prompt templating and execution under the hood.
+
+---
+
+## 🦖 Early Challenges
+
+Originally, we planned to scrape data directly from travel websites and community forums using botting techniques. We ran into site restrictions against scraping and kept trying to overcome it with things like sites 'robot.txt' for polite scraping.
+
+Resolution:
+We pivoted to using:
+- The official NPS API for parks data
+- Public Reddit posts via PRAW
+- Wikipedia summary extraction
+
+This gave us reliable, structured, and rate-limit-friendly content pipelines, we just had to be sure to limit our requests, which is easy to do since our app isn't very greedy so far.
+
+---
+
+## 🤖 Philosophy
+
+The project explores whether modern LLMs can effectively format frequently updated, unstructured, or third-party data in real-time without any model training, similiar to RAG (Retrieval-Augmented Generation).
+
+We believe that good-enough instruction-tuned LLMs, paired with a high-quality prompt pipeline and data retrieval system, are sufficient to generate user-aligned outputs from generic content.
 
 ---
 
