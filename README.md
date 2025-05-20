@@ -82,16 +82,17 @@ Although this is not a predictive model, we evaluated our results by:
       - GEMINI_API_KEY https://aistudio.google.com/app/apikey
       - REDDIT_CLIENT_ID https://old.reddit.com/prefs/apps
       - REDDIT_CLIENT_SECRET https://old.reddit.com/prefs/apps
-      - REDDIT_USER_AGENT reddit.com
-      - REDDIT_USERNAME reddit.com
-      - REDDIT_PASSWORD reddit.com
+      - REDDIT_USER_AGENT [reddit.com](https://www.reddit.com/)
+      - REDDIT_USERNAME [reddit.com](https://www.reddit.com/)
+      - REDDIT_PASSWORD [reddit.com](https://www.reddit.com/)
       - NAV_API_KEY https://api.openrouteservice.org/
       - RAPIDAPI_KEY https://docs.rapidapi.com/docs/keys-and-key-rotation
       - AMADEUS_CLIENT_SECRET https://developers.amadeus.com/self-service
       - AMADEUS_API_KEY https://developers.amadeus.com/self-service
       - NPS_KEY https://www.nps.gov/subjects/developer/api-documentation.htm
-      NOTE: Client Id and Client Secret and User Agent from creating an app at https://old.reddit.com/prefs/apps
-      NOTE: Can Create a Reddit Account with reddit.com and use the username and password
+        
+      - NOTE: Client Id and Client Secret and User Agent from creating an app at https://old.reddit.com/prefs/apps
+      - NOTE: Can Create a Reddit Account with reddit.com and use the username and password
 4. Install dependencies:
 
 ```bash
