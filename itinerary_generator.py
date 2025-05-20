@@ -68,7 +68,7 @@ def get_waypoints_from_itinerary(steps, destination, data):
 
     itinerary_text = "\n".join(steps)
     prompt = (
-        "Take the following itinerary and extract the locations for each day. Add a \n\n character to the end of each location and add the word stop when the end of a day's activities is reached. The only permitted items in this list are locations and the word stop to delimit the end of a day's activities. Be specific with the location using the destination {destination} and the activity so it can be searched on a navigation app. \n\n"
+        "Take the following itinerary and extract the locations for each day. Add a \n\n character to the end of each location and add the word stop when the end of a day's activities is reached. The only permitted items in this list are locations and the word stop to delimit the end of a day's activities. Be specific with the location like 'destination,city,state'. Do not include any other information.\n\n"
         f"{itinerary_text}"
     )
 
@@ -268,7 +268,7 @@ def generate_improved_itinerary(state: State) -> str:
             f"Don't include the itinerary, flight, or hotel information in the response and keep the response to 350 words or less. "
         )
         msg = safe_invoke(llm, query)
-        
+
         return {"sales_pitch": msg.content + "\n\n" + state["final_itinerary"]}
 
     # Build and wire the StateGraph
